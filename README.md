@@ -7,7 +7,7 @@
 
 # 👋 GOGOANIME API
 
-an unofficial anime api scrap from GOGOANIME API
+an unofficial anime api scrap from GOGOANIME
 
 # 👻 ShowCase
 
@@ -15,7 +15,7 @@ COMMING SOON
 
 # 🪛 Installation
 
-before you running api, please make sure your computer has already to install Go
+before you running api, please make sure your computer has already installed Go
 
 ## 🐳 Using Docker
 
@@ -53,14 +53,14 @@ if you didnt install docker, you can build this project using go.
     ```bash
     $ go main.exe
     ```
-3. if you build to executable file, u need running app with:
+3. if you build to executable file, you need running app with:
     ```bash
     $ ./main.exe
     ```
 
 ## ❤️‍🔥API DOC
 
-ENPOINT :
+ENDPOINT :
 
 ```bash
 /api/v1/anime
@@ -224,3 +224,7 @@ response :
   "data": "some message error"
 }
 ```
+
+# 📃 TODO
+- Add stream link
+- Showcase using this API
