@@ -22,6 +22,9 @@ type AnimeRouter interface {
 	GetListAnime(ctx *fiber.Ctx) error
 	GetAnimeInfoByName(ctx *fiber.Ctx) error
 	GetDownloadPage(ctx *fiber.Ctx) error
+	GetListGenre(ctx *fiber.Ctx) error
+	GetGenre(ctx *fiber.Ctx) error
+	FindAnime(ctx *fiber.Ctx) error
 }
 
 func (router *animeRouter) GetRecentAnime(ctx *fiber.Ctx) error {
@@ -73,6 +76,53 @@ func (router *animeRouter) GetAnimeInfoByName(ctx *fiber.Ctx) error {
 func (router *animeRouter) GetDownloadPage(ctx *fiber.Ctx) error {
 	name := ctx.Params("name")
 	anime, err := router.AnimeScrape.GetDownloadPage(name)
+	if err != nil {
+		panic(exception.NewNotFoundError(http.StatusNotFound, err))
+	}
+
+	return ctx.JSON(model.WebResponse{
+		Code:    http.StatusOK,
+		Message: "Success",
+		Data:    anime,
+	})
+}
+
+func (router *animeRouter) GetListGenre(ctx *fiber.Ctx) error {
+	anime, err := router.AnimeScrape.GetListGenre()
+	if err != nil {
+		panic(exception.NewNotFoundError(http.StatusNotFound, err))
+	}
+
+	return ctx.JSON(model.WebResponse{
+		Code:    http.StatusOK,
+		Message: "Success",
+		Data:    anime,
+	})
+}
+
+func (router *animeRouter) GetGenre(ctx *fiber.Ctx) error {
+	name := ctx.Params("name")
+	page, err := strconv.Atoi(ctx.Params("page", "1"))
+	if err != nil {
+		panic(exception.NewInputError(http.StatusBadRequest, errors.New("please input number")))
+	}
+
+	anime, err := router.AnimeScrape.GetGenre(name, page)
+	if err != nil {
+		panic(exception.NewNotFoundError(http.StatusNotFound, err))
+	}
+
+	return ctx.JSON(model.WebResponse{
+		Code:    http.StatusOK,
+		Message: "Success",
+		Data:    anime,
+	})
+}
+
+func (router *animeRouter) FindAnime(ctx *fiber.Ctx) error {
+	name := ctx.Params("name")
+
+	anime, err := router.AnimeScrape.FindAnime(name)
 	if err != nil {
 		panic(exception.NewNotFoundError(http.StatusNotFound, err))
 	}

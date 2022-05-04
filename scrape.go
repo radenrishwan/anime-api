@@ -7,6 +7,7 @@ import (
 	"github.com/chromedp/chromedp"
 	"github.com/radenrishwan/anime-api/model"
 	"log"
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -23,7 +24,9 @@ type AnimeScrape interface {
 	GetListAnime(page int) ([]model.ListAnime, error)
 	GetAnimeInfoByName(name string) (model.Anime, error)
 	GetDownloadPage(name string) (model.Episodes, error)
-	//GetDownloadLink(name string)
+	GetListGenre() ([]model.Genre, error)
+	GetGenre(name string, page int) ([]model.SearchBanner, error)
+	FindAnime(name string) ([]model.SearchBanner, error)
 }
 
 func (scrape *animeScrape) GetRecentAnime() ([]model.AnimeBanner, error) {
@@ -42,12 +45,14 @@ func (scrape *animeScrape) GetRecentAnime() ([]model.AnimeBanner, error) {
 		url, exists := selection.Find(".img a").Attr("href")
 		name := selection.Find(".name a").Text()
 		lastEpisode := selection.Find(".episode").Text()
+		slug, exists := selection.Find(".img a").Attr("href")
 
 		if exists {
 			anime.Image = img
 			anime.Url = "https://" + ENDPOINT + url
 			anime.Title = name
 			anime.LastEpisode = lastEpisode
+			anime.Slug = slug[1 : len(slug)-(len(lastEpisode)+1)]
 
 			animes = append(animes, anime)
 		}
@@ -190,52 +195,108 @@ func (scrape *animeScrape) GetDownloadPage(name string) (model.Episodes, error) 
 	return result, nil
 }
 
-//func (scrape animeScrape) GetDownloadLink(name string) {
-//	ctx, cancel := chromedp.NewContext(context.Background())
-//	defer cancel()
-//
-//	episodes, err := scrape.GetDownloadPage(name)
-//	if err != nil {
-//		log.Fatalln(err)
-//	}
-//
-//	a := 1
-//	for _, episode := range episodes {
-//		responseDownloadUrl, err := http.Get(episode.Url)
-//		if err != nil {
-//			log.Fatalln(err)
-//		}
-//
-//		readerDownloadUrl, err := goquery.NewDocumentFromReader(responseDownloadUrl.Body)
-//		if err != nil {
-//			log.Fatalln(err)
-//		}
-//
-//		downloadUrl, exists := readerDownloadUrl.Find(".dowloads a").Attr("href")
-//		fmt.Println(downloadUrl)
-//		if exists && a == 1 {
-//			a += 1
-//
-//			var result string
-//			err := chromedp.Run(ctx,
-//				chromedp.Navigate(downloadUrl),
-//				chromedp.WaitVisible(".mirror_link"),
-//				chromedp.InnerHTML(".content_c_bg", &result),
-//			)
-//
-//			//response := strings.NewReader(result)
-//			//reader, err := goquery.NewDocumentFromReader(response)
-//			//
-//			//reader.Find("#content-download .mirror_link").Each(func(_ int, selection *goquery.Selection) {
-//			//	//url, existUrl := selection.Find("a").Attr("href")
-//			//
-//			//	fmt.Println(selection.Find("h6").Text())
-//			//})
-//
-//			if err != nil {
-//				log.Fatalln(err)
-//			}
-//
-//		}
-//	}
-//}
+func (scrape *animeScrape) GetListGenre() ([]model.Genre, error) {
+	var genres []model.Genre
+
+	response, err := http.Get("https://gogoanime.sk")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	reader, err := goquery.NewDocumentFromReader(response.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	reader.Find(".genre ul li a").Each(func(_ int, selection *goquery.Selection) {
+		url, exists := selection.Attr("href")
+		info := selection.Text()
+
+		if exists {
+			genres = append(genres, model.Genre{
+				Url:   "https://" + ENDPOINT + url,
+				Genre: strings.ToLower(info),
+			})
+		}
+	})
+
+	if genres == nil {
+		return genres, errors.New("genres not found")
+	}
+
+	return genres, nil
+}
+
+func (scrape *animeScrape) GetGenre(name string, page int) ([]model.SearchBanner, error) {
+	var genres []model.SearchBanner
+
+	response, err := http.Get("https://gogoanime.sk/genre/" + name + "?page=" + strconv.Itoa(page))
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	reader, err := goquery.NewDocumentFromReader(response.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	reader.Find(".last_episodes .items li").Each(func(_ int, selection *goquery.Selection) {
+		img, exists := selection.Find(".img a img").Attr("src")
+		url, exists := selection.Find(".img a").Attr("href")
+		title := selection.Find(".name").Text()
+		release := selection.Find(".released").Text()[9:]
+
+		if exists {
+			genres = append(genres, model.SearchBanner{
+				Image:    img,
+				Url:      "https://" + ENDPOINT + url,
+				Title:    title,
+				Released: strings.TrimSpace(release),
+				Slug:     url[10:],
+			})
+		}
+	})
+
+	if genres == nil {
+		return genres, errors.New("genre not found")
+	}
+
+	return genres, nil
+}
+
+func (scrape *animeScrape) FindAnime(name string) ([]model.SearchBanner, error) {
+	var genres []model.SearchBanner
+
+	response, err := http.Get("https://gogoanime.sk//search.html?keyword=" + name)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	reader, err := goquery.NewDocumentFromReader(response.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	reader.Find(".last_episodes .items li").Each(func(_ int, selection *goquery.Selection) {
+		img, exists := selection.Find(".img a img").Attr("src")
+		url, exists := selection.Find(".img a").Attr("href")
+		title := selection.Find(".name").Text()
+		release := selection.Find(".released").Text()[9:]
+
+		if exists {
+			genres = append(genres, model.SearchBanner{
+				Image:    img,
+				Url:      "https://" + ENDPOINT + url,
+				Title:    title,
+				Released: strings.TrimSpace(release),
+				Slug:     url[10:],
+			})
+		}
+	})
+
+	if genres == nil {
+		return genres, errors.New("genre not found")
+	}
+
+	return genres, nil
+}

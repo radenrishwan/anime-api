@@ -30,7 +30,11 @@ func main() {
 	v1 := app.Group("api/v1/anime/")
 
 	v1.Get("/recent-anime", router.GetRecentAnime)
+	v1.Get("/search/:name", router.FindAnime)
 	v1.Get("/list-anime/:page", router.GetListAnime)
+	v1.Get("/genre", router.GetListGenre)
+	v1.Get("/genre/:name", router.GetGenre)
+	v1.Get("/genre/:name/:page", router.GetGenre)
 	v1.Get("/:name", router.GetAnimeInfoByName)
 	v1.Get("/:name/downloads", router.GetDownloadPage)
 

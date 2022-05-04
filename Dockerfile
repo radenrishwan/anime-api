@@ -1,8 +1,10 @@
-FROM golang:1.18.0-alpine
+FROM golang:1.18.0
 
 WORKDIR /app
 
 COPY go.mod go.mod ./
+
+RUN apk add chromium
 
 RUN go mod download
 
